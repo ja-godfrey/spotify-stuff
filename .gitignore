@@ -1,3 +1,24 @@
+# Data
+/**/*.csv
+/**/*.dta
+/**/*.pxa
+/**/*.ris
+/**/*.rtf
+/**/*.xls
+/**/*.xlsx
+/**/*.nvp
+/**/*.txt
+/**/*.jpg
+/**/*.jpeg
+/**/*.png
+/**/*.doc
+/**/*.docx
+/**/*.pdf
+/**/*/.json
+
+# Folder
+figs/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
