@@ -1,51 +1,168 @@
-#%%
+# %%
+# Import necessary libraries
 import pandas as pd
 import networkx as nx
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 from collections import defaultdict
+import math
+import numpy as np
 
-# Load the dataset
+# ['Spotify ID', 'Artist IDs', 'Track Name', 'Album Name',
+#        'Artist Name(s)', 'Release Date', 'Duration (ms)', 'Popularity',
+#        'Added By', 'Added At', 'Genres', 'Danceability', 'Energy', 'Key',
+#        'Loudness', 'Mode', 'Speechiness', 'Acousticness', 'Instrumentalness',
+#        'Liveness', 'Valence', 'Tempo', 'Time Signature', 'PlaylistOwner'],
+
+# Load data
 file_path = './../data/derived/combined.csv'  # Replace with your file path
 data = pd.read_csv(file_path)
+col = 'Artist Name(s)'
 
-# Creating a graph
-G = nx.Graph()
-
-# Creating a dictionary to hold the artists for each owner
+# Prepare data for the network graph
 owner_artists = defaultdict(set)
-
-# Populating the dictionary with data
-for _, row in data.iterrows():
-    owner_artists[row['PlaylistOwner']].add(row['Artist Name(s)'])
-
-# Identifying artists with overlap across different owners
-# We will find artists who appear in the playlists of more than one owner
-
-# Dictionary to keep track of the number of owners per artist
 artist_owners = defaultdict(set)
 
-# Populating the dictionary
-for owner, artists in owner_artists.items():
-    for artist in artists:
-        artist_owners[artist].add(owner)
+# Populate the dictionaries with data
+for _, row in data.iterrows():
+    owner_artists[row['PlaylistOwner']].add(row[col])
+    artist_owners[row[col]].add(row['PlaylistOwner'])
 
-# Filtering out artists that appear in only one owner's playlist
+# Filter out artists that appear in only one owner's playlist
 overlapping_artists = {artist: owners for artist, owners in artist_owners.items() if len(owners) > 1}
 
-# Creating a new graph for only overlapping artists
-G_overlap = nx.Graph()
+# Create the network graph
+G = nx.Graph()
 
-# Adding nodes and edges for overlapping artists
+# Add nodes and edges for overlapping artists
 for artist, owners in overlapping_artists.items():
     for owner in owners:
-        G_overlap.add_edge(owner, artist)
+        G.add_edge(owner, artist)
 
-# Drawing the new graph
-plt.figure(figsize=(15, 15))
-pos = nx.spring_layout(G_overlap, k=0.15, iterations=20)
-nx.draw_networkx_nodes(G_overlap, pos, node_size=50, node_color='blue')
-nx.draw_networkx_edges(G_overlap, pos, alpha=0.5)
-plt.title("Network Graph of Playlist Owners and Overlapping Artists")
-plt.show()
+# Generate positions for the nodes in the graph using a breadth-first layout
+def bfs_layout_circular(G, root=None):
+    if root is None:
+        root = list(G.nodes)[0]
+
+    levels = {}
+    levels[root] = 0
+    queue = [root]
+    while queue:
+        node = queue.pop(0)
+        neighbors = list(G.neighbors(node))
+        for neighbor in neighbors:
+            if neighbor not in levels:
+                levels[neighbor] = levels[node] + 1
+                queue.append(neighbor)
+
+    max_level = max(levels.values())
+    pos = {}
+    for level in range(max_level + 1):
+        nodes_at_level = [node for node, lvl in levels.items() if lvl == level]
+        num_nodes = len(nodes_at_level)
+        angle = 2 * math.pi / num_nodes
+        for i, node in enumerate(nodes_at_level):
+            theta = i * angle
+            pos[node] = (0.5 + math.cos(theta) / (level + 1), 0.5 + math.sin(theta) / (level + 1))
+
+    return pos
+
+# Use the bfs_layout function
+pos = bfs_layout_circular(G)
+
+# Cell 6: Create Plotly trace for the edges
+edge_x = []
+edge_y = []
+for edge in G.edges():
+    x0, y0 = pos[edge[0]]
+    x1, y1 = pos[edge[1]]
+    edge_x.extend([x0, x1, None])
+    edge_y.extend([y0, y1, None])
+
+edge_trace = go.Scatter(
+    x=edge_x, y=edge_y,
+    line=dict(width=0.5, color='#888'),
+    hoverinfo='none',
+    mode='lines')
+
+# Cell 7: Create Plotly trace for the nodes
+node_x = []
+node_y = []
+for node in G.nodes():
+    x, y = pos[node]
+    node_x.append(x)
+    node_y.append(y)
+
+node_info = {}
+for _, row in data.iterrows():
+    artist = row[col]  # Assuming 'col' holds the track name
+    owner = row['PlaylistOwner']
+    track_name = row['Track Name']
+    artist_name = row['Artist Name(s)']  # Replace with the actual column name for artist names in your data
+    node_info[artist] = (track_name, artist_name)
+    node_info[owner] = (track_name, artist_name)
+
+# Cell 8: Color node points by the number of connections
+node_adjacencies = []
+# Modified Step: Update Node Text for Hover Information
+node_color = []
+node_text = []
+for node in G.nodes():
+    adjacencies = list(G.adj[node])
+    num_connections = len(adjacencies)
+
+    # Prepare a string with connection names
+    connections = ', '.join(adjacencies)
+
+    # Check if the node is a user or an artist
+    if node in owner_artists:
+        # User node
+        node_color.append('blue')  # Or any other color for user nodes
+        hover_text = f"User: {node}<br># of connections: {num_connections}<br>Connections: {connections}"
+    else:
+        # Artist node
+        node_color.append('green')  # Or any other color for artist nodes
+        track_name, artist_name = node_info.get(node, ("Unknown", "Unknown"))
+        hover_text = f"Artist: {node}<br>Track: {track_name}<br>Artist Name: {artist_name}<br># of connections: {num_connections}<br>Connections: {connections}"
+
+    node_text.append(hover_text)
+
+node_trace = go.Scatter(
+    x=node_x, y=node_y,
+    mode='markers',
+    hoverinfo='text',
+    marker=dict(
+        size=10,
+        color=node_color,  # Use the predefined node_color list
+        line_width=2))
+
+node_trace.marker.color = node_color
+node_trace.text = node_text
+
+# Cell 9: Create the network graph
+fig = go.Figure(data=[edge_trace, node_trace],
+             layout=go.Layout(
+                title=dict(
+                    text='Network graph of Playlist Owners and Overlapping Artists',
+                    x=0.5,  # Centers the title
+                    xanchor='center',  # Ensures the title is centered at the given x position
+                    font=dict(size=24)
+                ),
+                titlefont_size=16,
+                showlegend=False,
+                hovermode='closest',
+                margin=dict(b=20,l=5,r=5,t=40),
+                annotations=[ dict(
+                    text="Python code by OpenAI's ChatGPT",
+                    showarrow=False,
+                    xref="paper", yref="paper",
+                    x=0.005, y=-0.002 ) ],
+                paper_bgcolor='rgb(229,236,246)',
+                xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+                yaxis=dict(showgrid=False, zeroline=False, showticklabels=False))
+                )
+
+# Cell 10: Show the Plotly graph
+fig.show()
+
 
 # %%
