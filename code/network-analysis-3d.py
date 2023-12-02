@@ -121,12 +121,13 @@ def prepare_node_traces(graph_data, pos, df, contributor_color_map):
     traces = []
 
     for contributor, color in contributor_color_map.items():
-        x, y, text = [], [], []
+        x, y, z, text = [], [], [], []
         for node in graph_data['nodes']:
             if df.loc[node['id'], 'PlaylistOwner'] == contributor:
-                x_pos, y_pos = pos[node['id']]
+                x_pos, y_pos, z_pos = pos[node['id']]
                 x.append(x_pos)
                 y.append(y_pos)
+                z.append(z_pos)
                 hover_text = (
                     f"Song: {node['label']}<br>"
                     f"Artist: {df.loc[node['id'], 'Artist Name(s)']}<br>"
@@ -134,14 +135,14 @@ def prepare_node_traces(graph_data, pos, df, contributor_color_map):
                 )
                 text.append(hover_text)
 
-        trace = go.Scatter(
-            x=x, y=y,
+        trace = go.Scatter3d(
+            x=x, y=y, z=z,
             text=text,
             mode='markers',
             hoverinfo='text',
             marker=dict(
                 showscale=False,
-                size=10,
+                size=4,
                 opacity=0.8,
                 color=color
             ),
@@ -152,6 +153,23 @@ def prepare_node_traces(graph_data, pos, df, contributor_color_map):
         traces.append(trace)
 
     return traces
+
+def prepare_edge_traces(pos, G, threshold=0.7):
+    edge_traces = []
+    for edge in tqdm(G.edges(data=True), desc="Processing Edges"):
+        if edge[2]['weight'] >= threshold:
+            x0, y0, z0 = pos[edge[0]]  # Position of node 0
+            x1, y1, z1 = pos[edge[1]]  # Position of node 1
+            trace = go.Scatter3d(
+                x=[x0, x1, None],  # x-coordinates of edge ends
+                y=[y0, y1, None],  # y-coordinates
+                z=[z0, z1, None],  # z-coordinates
+                mode='lines',
+                line=dict(width=1, color='rgba(20, 20, 20, 0.5)'),
+                hoverinfo='none'
+            )
+            edge_traces.append(trace)
+    return edge_traces
 
 def create_figure(traces):
     """Creates the plotly figure with the given node trace and legend."""
@@ -167,8 +185,11 @@ def create_figure(traces):
         hovermode='closest',
         annotations=[dict(text="", showarrow=False, xref="paper", yref="paper", x=0.005, y=-0.002)],
         margin=dict(b=20, l=5, r=5, t=40),
-        xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
-        yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        scene=dict(  # Change to 3D scene
+            xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+            zaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+        ),
         legend=dict(itemclick="toggleothers", itemdoubleclick="toggle"),
         paper_bgcolor='rgb(229,236,246)',
     )
@@ -176,15 +197,18 @@ def create_figure(traces):
     return fig
 
 # Main Execution
-G = nx.Graph()  # Assuming G is a predefined NetworkX graph
 combined_df = combined_df  # Assuming combined_df is a predefined DataFrame
-pos = pos  # Assuming pos is a predefined dictionary for node positions
+pos_2d = nx.spring_layout(G, weight='weight')
+pos = {node: (*pos_2d[node], random.uniform(0, 1)) for node in G.nodes()}
 
 nodes, edges = extract_graph_data(G)
 graph_data = load_graph_data('./../data/derived/network_graph_data.json')
 contributor_color_map = create_contributor_color_map(combined_df, 'PlaylistOwner')
-traces = prepare_node_traces(graph_data, pos, combined_df, contributor_color_map)
-fig = create_figure(traces)
-fig.write_html('./../figs/network_graph.html')
+node_traces = prepare_node_traces(graph_data, pos, combined_df, contributor_color_map)
+edge_traces = prepare_edge_traces(pos, G, threshold=0.9)
+fig = create_figure(node_traces) # + edge_traces 
+fig.write_html('./../figs/network_graph-3d.html')
 fig.show()
+
+
 # %%
