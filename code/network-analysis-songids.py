@@ -1,6 +1,6 @@
 # %%
 # https://chat.openai.com/c/9f85b511-eb36-4216-bde6-29eb2d1a9be5
-threshold = 0.5
+threshold = .5
 
 import pandas as pd
 import numpy as np
@@ -14,10 +14,7 @@ import colorsys
 # Load your dataset
 df = pd.read_csv('./../data/derived/combined.csv')
 
-# columns_to_analyze = [
-#     'Loudness', 'Speechiness', 'Acousticness', 'Instrumentalness', 
-#     'Liveness', 'Valence', 'Tempo', 'Danceability', 'Energy', 'Popularity', 'Duration (ms)'
-# ]
+# columns_to_analyze = ['Spotify ID', 'Artist IDs', 'Track Name', 'Album Name', 'Artist Name(s)', 'Release Date', 'Duration (ms)', 'Popularity', 'Added By', 'Added At', 'Genres', 'Danceability', 'Energy', 'Key', 'Loudness', 'Mode', 'Speechiness', 'Acousticness', 'Instrumentalness', 'Liveness', 'Valence', 'Tempo', 'Time Signature', 'PlaylistOwner']
 
 columns_to_analyze = [
     'Duration (ms)', 'Popularity', 'Danceability', 'Energy', 'Key', 'Loudness','Speechiness', 'Acousticness', 'Instrumentalness', 'Liveness', 'Valence', 'Tempo', 'Time Signature'
@@ -66,43 +63,39 @@ for node in G.nodes():
     artist = song_info['Artist Name(s)'].values[0]
     hover_text.append(f'{title} <br>by {artist}')
 
-pos = nx.spring_layout(G, dim=3)
+pos = nx.spring_layout(G, dim=2)
 
-edge_x, edge_y, edge_z = [], [], []
+edge_x, edge_y = [], []
 for edge in G.edges():
-    x0, y0, z0 = pos[edge[0]]
-    x1, y1, z1 = pos[edge[1]]
+    x0, y0 = pos[edge[0]]
+    x1, y1 = pos[edge[1]]
     edge_x.extend([x0, x1, None])
     edge_y.extend([y0, y1, None])
-    edge_z.extend([z0, z1, None])
 
 node_x = [pos[node][0] for node in G.nodes()]
 node_y = [pos[node][1] for node in G.nodes()]
-node_z = [pos[node][2] for node in G.nodes()]
 
-edge_trace = go.Scatter3d(
-    x=edge_x, y=edge_y, z=edge_z, 
-    line=dict(width=0.5, color='#888'), 
+edge_trace = go.Scatter(
+    x=edge_x, y=edge_y, 
+    line=dict(width=0.25, color='#888'), 
     hoverinfo='none', 
     mode='lines',
-    opacity=0.1,
-    showlegend=False  # This will hide this trace from the legend
+    opacity=0.15
 )
 
-node_trace = go.Scatter3d(
-    x=node_x, y=node_y, z=node_z, 
+node_trace = go.Scatter(
+    x=node_x, y=node_y, 
     mode='markers', 
     hoverinfo='text', 
     text=hover_text,
-    marker=dict(size=5, color=node_color, line_width=1),
-    showlegend=False  # This will hide this trace from the legend
+    marker=dict(size=10, color=node_color, line_width=1)
 )
 
 traces = [edge_trace, node_trace] # edge_trace, 
 
 for owner, color in color_map.items():
-    traces.append(go.Scatter3d(
-        x=[None], y=[None], z=[None],
+    traces.append(go.Scatter(
+        x=[None], y=[None],
         mode='markers',
         marker=dict(size=10, color=color),
         legendgroup=owner,
@@ -113,21 +106,18 @@ for owner, color in color_map.items():
 axis_layout = dict(showbackground=False, showline=True, zeroline=False, showgrid=True, showticklabels=False, title='')
 
 layout = go.Layout(
-    title='3D Network Graph of Spotify Songs',
+    title='2D Network Graph of Spotify Songs',
     showlegend=True,
     hovermode='closest',
     margin=dict(b=20, l=5, r=5, t=40),
-    scene=dict(
-        xaxis=dict(axis_layout),
-        yaxis=dict(axis_layout),
-        zaxis=dict(axis_layout)
-    ),
+    xaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
+    yaxis=dict(showgrid=False, zeroline=False, showticklabels=False),
     paper_bgcolor='rgb(229,236,246)'
 )
 
 
-fig = go.Figure(data=traces, layout=layout)
-fig.write_html('./../figs/network_graph-3d-songids.html')
+fig = go.Figure(data=[edge_trace, node_trace] + traces[2:], layout=layout)
+fig.write_html('./../figs/network_graph-2d-songids.html')
 fig.show()
 
 
