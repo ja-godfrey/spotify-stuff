@@ -110,19 +110,20 @@ for node in G.nodes():
     adjacencies = list(G.adj[node])
     num_connections = len(adjacencies)
 
-    # Prepare a string with connection names
-    connections = ', '.join(adjacencies)
+    # Prepare a string with connection names for artist nodes
+    if node not in owner_artists:  # Check if it's an artist node
+        connections = ', '.join(adjacencies)
 
     # Check if the node is a user or an artist
     if node in owner_artists:
-        # User node
-        node_color.append('blue')  # Or any other color for user nodes
-        hover_text = f"User: {node}<br># of connections: {num_connections}<br>Connections: {connections}"
+        # User node - Show only user name and number of connections
+        node_color.append('#FF6961')  # Or your chosen color for user nodes
+        hover_text = f"User: {node}<br># of connections: {num_connections}"
     else:
-        # Artist node
-        node_color.append('green')  # Or any other color for artist nodes
+        # Artist node - Show detailed information including connections
+        node_color.append('#61A8FF')  # Or your chosen color for artist nodes
         track_name, artist_name = node_info.get(node, ("Unknown", "Unknown"))
-        hover_text = f"Artist: {node}<br>Track: {track_name}<br>Artist Name: {artist_name}<br># of connections: {num_connections}<br>Connections: {connections}"
+        hover_text = f"Artist Name: {node}<br># of connections: {num_connections}<br>Connections: {connections}"
 
     node_text.append(hover_text)
 
@@ -142,7 +143,7 @@ node_trace.text = node_text
 fig = go.Figure(data=[edge_trace, node_trace],
              layout=go.Layout(
                 title=dict(
-                    text='Network graph of Playlist Owners and Overlapping Artists',
+                    text='Overlapping Artists',
                     x=0.5,  # Centers the title
                     xanchor='center',  # Ensures the title is centered at the given x position
                     font=dict(size=24)
@@ -152,7 +153,7 @@ fig = go.Figure(data=[edge_trace, node_trace],
                 hovermode='closest',
                 margin=dict(b=20,l=5,r=5,t=40),
                 annotations=[ dict(
-                    text="Python code by OpenAI's ChatGPT",
+                    text="",
                     showarrow=False,
                     xref="paper", yref="paper",
                     x=0.005, y=-0.002 ) ],
@@ -162,6 +163,7 @@ fig = go.Figure(data=[edge_trace, node_trace],
                 )
 
 # Cell 10: Show the Plotly graph
+fig.write_html('./../figs/overlapping_artists.html')
 fig.show()
 
 
