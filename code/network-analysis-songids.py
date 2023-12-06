@@ -1,6 +1,6 @@
 # %%
 # https://chat.openai.com/c/9f85b511-eb36-4216-bde6-29eb2d1a9be5
-threshold = .5
+threshold = .3
 
 import pandas as pd
 import numpy as np
@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import colorsys
 
 # Load your dataset
-df = pd.read_csv('./../data/derived/combined.csv')
+df = pd.read_csv('./../data/derived/a-combined.csv')
 
 # columns_to_analyze = ['Spotify ID', 'Artist IDs', 'Track Name', 'Album Name', 'Artist Name(s)', 'Release Date', 'Duration (ms)', 'Popularity', 'Added By', 'Added At', 'Genres', 'Danceability', 'Energy', 'Key', 'Loudness', 'Mode', 'Speechiness', 'Acousticness', 'Instrumentalness', 'Liveness', 'Valence', 'Tempo', 'Time Signature', 'PlaylistOwner']
 

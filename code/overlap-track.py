@@ -8,7 +8,7 @@ import math
 import numpy as np
 
 # Load data
-file_path = './../data/derived/combined.csv'  # Replace with your file path
+file_path = './../data/derived/a-combined.csv'  # Replace with your file path
 data = pd.read_csv(file_path)
 col = 'Artist Name(s)'
 
@@ -156,7 +156,7 @@ fig = go.Figure(data=[edge_trace, node_trace],
                 )
 
 # Cell 10: Show the Plotly graph
-fig.write_html('./../figs/overlapping_artists.html')
+fig.write_html('./../figs/overlapping_tracks.html')
 fig.show()
 
 

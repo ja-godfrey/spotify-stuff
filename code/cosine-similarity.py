@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 #%%
 
 # Directory containing the files
-directory = './../data/raw/'  # Update this with your directory path
+directory = './../data/raw/accelerate/'  # Update this with your directory path
 
 # Function to load and merge the playlists
 def load_and_merge_playlists(directory):
@@ -44,13 +44,18 @@ G = nx.Graph()
 for user in similarity_df.index:
     for other_user in similarity_df.columns:
         if user != other_user and similarity_df.loc[user, other_user] > 0.2:
-            G.add_edge(user, other_user, weight=similarity_df.loc[user, other_user])
+            G.add_edge(user, other_user, weight=round(similarity_df.loc[user, other_user], 3))
 
 # Draw the network graph
 plt.figure(figsize=(10,10))
 pos = nx.spring_layout(G)
 nx.draw(G, pos, with_labels=True, node_color='skyblue', node_size=2000, edge_color='gray')
+
+# Round the edge labels to 3 decimal places
 edge_labels = nx.get_edge_attributes(G, 'weight')
+for edge in edge_labels:
+    edge_labels[edge] = round(edge_labels[edge], 3)
+
 nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels)
 plt.title("User Similarity Network Based on Spotify Playlists")
 plt.show()

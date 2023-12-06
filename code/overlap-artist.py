@@ -14,7 +14,7 @@ import numpy as np
 #        'Liveness', 'Valence', 'Tempo', 'Time Signature', 'PlaylistOwner'],
 
 # Load data
-file_path = './../data/derived/combined.csv'  # Replace with your file path
+file_path = './../data/derived/a-combined.csv'  # Replace with your file path
 data = pd.read_csv(file_path)
 col = 'Artist Name(s)'
 

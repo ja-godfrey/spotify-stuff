@@ -1,6 +1,6 @@
 # %%
 # https://chat.openai.com/c/9f85b511-eb36-4216-bde6-29eb2d1a9be5
-threshold = 0.5
+threshold = 0.4
 
 import pandas as pd
 import numpy as np
@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import colorsys
 
 # Load your dataset
-df = pd.read_csv('./../data/derived/combined.csv')
+df = pd.read_csv('./../data/derived/a-combined.csv')
 
 # columns_to_analyze = [
 #     'Loudness', 'Speechiness', 'Acousticness', 'Instrumentalness', 
