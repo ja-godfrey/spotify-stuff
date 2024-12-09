@@ -14,8 +14,16 @@ import numpy as np
 #        'Liveness', 'Valence', 'Tempo', 'Time Signature', 'PlaylistOwner'],
 
 # Load data
-file_path = './../data/derived/a-combined.csv'  # Replace with your file path
+file_path = './../data/derived/combined.csv'  # Replace with your file path
 data = pd.read_csv(file_path)
+
+data = pd.read_csv('./../data/derived/combined.csv')
+data = data[
+    (data['Year'] == 2024) & 
+    (data['PlaylistOwner'].str.lower().isin({'j', 'jason', 'braden', 'jon', 'jacob', 'theo', 'mcairth'}))
+]
+
+
 col = 'Artist Name(s)'
 
 # Prepare data for the network graph

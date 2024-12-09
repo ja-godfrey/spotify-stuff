@@ -1,35 +1,33 @@
 # %%
-# https://chat.openai.com/c/9f85b511-eb36-4216-bde6-29eb2d1a9be5
-threshold = 0.4
-
+# https://chat.openai.com/c/9f85b511-eb36-4216-bde6-29eb2d1a9be5 2023
+# https://chatgpt.com/c/675532a1-bd4c-8002-8335-e6e7e0dc3016?model=gpt-4o 2024
 import pandas as pd
 import numpy as np
 from sklearn.preprocessing import StandardScaler
+from sklearn.manifold import MDS
 from sklearn.metrics.pairwise import cosine_similarity
 import plotly.graph_objects as go
 import networkx as nx
-import matplotlib.pyplot as plt
 import colorsys
 
-# Load your dataset
-df = pd.read_csv('./../data/derived/a-combined.csv')
-
-# columns_to_analyze = [
-#     'Loudness', 'Speechiness', 'Acousticness', 'Instrumentalness', 
-#     'Liveness', 'Valence', 'Tempo', 'Danceability', 'Energy', 'Popularity', 'Duration (ms)'
-# ]
+threshold = 0.7
+df = pd.read_csv('./../data/derived/combined.csv')
+df = df[
+    (df['Year'] == 2024) & 
+    (df['PlaylistOwner'].str.lower().isin({'j', 'jason', 'braden', 'jon', 'jacob', 'theo', 'mcairth'}))
+]
 
 columns_to_analyze = [
-    'Duration (ms)', 'Popularity', 'Danceability', 'Energy', 'Key', 'Loudness','Speechiness', 'Acousticness', 'Instrumentalness', 'Liveness', 'Valence', 'Tempo', 'Time Signature'
-                      ]
-df_unique = df.drop_duplicates(subset='Spotify ID')[columns_to_analyze]
+    'Duration (ms)', 'Popularity', 'Danceability', 'Energy', 'Key', 'Loudness','Speechiness', 'Acousticness', 
+    'Instrumentalness', 'Liveness', 'Valence', 'Tempo', 'Time Signature'
+]
+df_unique = df.drop_duplicates(subset='TrackID')[columns_to_analyze].reset_index(drop=True)
+track_ids = df.drop_duplicates(subset='TrackID')['TrackID'].reset_index(drop=True)
 
-# Create a color map
 def generate_pastel_colors(n):
     colors = []
     for i in range(n):
         hue = i / n
-        # Adjust saturation (0.4-0.6) and lightness (0.7-0.9) for pastel tint
         colors.append(colorsys.hsv_to_rgb(hue, 0.5, 0.8))
     return colors
 
@@ -44,29 +42,24 @@ color_map = dict(zip(unique_owners, colors_hex))
 
 scaler = StandardScaler()
 df_scaled = scaler.fit_transform(df_unique)
-
 similarity_matrix = cosine_similarity(df_scaled)
 
 G = nx.Graph()
 for i in range(len(similarity_matrix)):
-    for j in range(i+1, len(similarity_matrix)):
-        # You can set a threshold for similarity to reduce the number of edges
-        if similarity_matrix[i][j] > threshold:  # e.g., 0.5
-            G.add_edge(df['Spotify ID'][i], df['Spotify ID'][j], weight=similarity_matrix[i][j])
+    for j in range(i + 1, len(similarity_matrix)):
+        if similarity_matrix[i][j] > threshold:
+            G.add_edge(track_ids[i], track_ids[j], weight=similarity_matrix[i][j])
 
-node_color = []
-for node in G.nodes():
-    owner = df[df['Spotify ID'] == node]['PlaylistOwner'].values[0]
-    node_color.append(color_map[owner])
+owner_map = {node: df[df['TrackID'] == node]['PlaylistOwner'].values[0] for node in G.nodes()}
+hover_text = [
+    f"{df[df['TrackID'] == node]['Track Name'].values[0]}<br>by {df[df['TrackID'] == node]['Artist Name(s)'].values[0]}"
+    for node in G.nodes()
+]
 
-hover_text = []
-for node in G.nodes():
-    song_info = df[df['Spotify ID'] == node]
-    title = song_info['Track Name'].values[0]
-    artist = song_info['Artist Name(s)'].values[0]
-    hover_text.append(f'{title} <br>by {artist}')
-
-pos = nx.spring_layout(G, dim=3)
+dissimilarity = 1 - similarity_matrix
+mds = MDS(n_components=3, dissimilarity='precomputed', random_state=42)
+embeddings = mds.fit_transform(dissimilarity)
+pos = {track_ids[i]: embeddings[i] for i in range(len(track_ids)) if track_ids[i] in G.nodes()}
 
 edge_x, edge_y, edge_z = [], [], []
 for edge in G.edges():
@@ -79,14 +72,15 @@ for edge in G.edges():
 node_x = [pos[node][0] for node in G.nodes()]
 node_y = [pos[node][1] for node in G.nodes()]
 node_z = [pos[node][2] for node in G.nodes()]
+node_colors = [color_map[owner_map[node]] for node in G.nodes()]
 
 edge_trace = go.Scatter3d(
     x=edge_x, y=edge_y, z=edge_z, 
-    line=dict(width=0.5, color='#888'), 
+    line=dict(width=0.5, color='rgba(150,150,150,0.25)'), 
     hoverinfo='none', 
     mode='lines',
-    opacity=0.1,
-    showlegend=False  # This will hide this trace from the legend
+    opacity=0.2,
+    showlegend=False
 )
 
 node_trace = go.Scatter3d(
@@ -94,12 +88,11 @@ node_trace = go.Scatter3d(
     mode='markers', 
     hoverinfo='text', 
     text=hover_text,
-    marker=dict(size=5, color=node_color, line_width=1),
-    showlegend=False  # This will hide this trace from the legend
+    marker=dict(size=6, color=node_colors, line=dict(width=0.5, color='black')),
+    showlegend=False
 )
 
-traces = [edge_trace, node_trace] # edge_trace, 
-
+traces = [edge_trace, node_trace]
 for owner, color in color_map.items():
     traces.append(go.Scatter3d(
         x=[None], y=[None], z=[None],
@@ -110,25 +103,37 @@ for owner, color in color_map.items():
         showlegend=True
     ))
 
-axis_layout = dict(showbackground=False, showline=True, zeroline=False, showgrid=True, showticklabels=False, title='')
-
 layout = go.Layout(
-    title='3D Network Graph of Spotify Songs',
+    title='Music Similarity Network (2024)',
     showlegend=True,
     hovermode='closest',
     margin=dict(b=20, l=5, r=5, t=40),
+    paper_bgcolor='rgb(245,245,245)',
     scene=dict(
-        xaxis=dict(axis_layout),
-        yaxis=dict(axis_layout),
-        zaxis=dict(axis_layout)
-    ),
-    paper_bgcolor='rgb(229,236,246)'
+        xaxis=dict(showbackground=True, backgroundcolor='rgb(235,235,235)', showgrid=False, zeroline=False),
+        yaxis=dict(showbackground=True, backgroundcolor='rgb(235,235,235)', showgrid=False, zeroline=False),
+        zaxis=dict(showbackground=True, backgroundcolor='rgb(235,235,235)', showgrid=False, zeroline=False)
+    )
 )
 
-
 fig = go.Figure(data=traces, layout=layout)
-fig.write_html('./../figs/network_graph-3d-songids.html')
+fig.write_html('./../figs/network_graph-3d-improved.html')
 fig.show()
+# %%
+# Export
+edges_data = [
+    {'Source': edge[0], 'Target': edge[1], 'Similarity': G[edge[0]][edge[1]]['weight']}
+    for edge in G.edges()
+]
 
+# Convert to DataFrame
+edges_df = pd.DataFrame(edges_data)
+
+# Export to CSV
+edges_df.to_csv('./../data/derived/relationships.csv', index=False)
+
+# Export to JSON
+edges_df.to_json('./../data/derived/relationships.json', orient='records', indent=4)
 
 # %%
+

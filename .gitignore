@@ -15,6 +15,7 @@
 /**/*.docx
 /**/*.pdf
 /**/*/.json
+*.json
 
 # Folder
 figs/
