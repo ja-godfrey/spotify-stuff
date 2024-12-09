@@ -6,7 +6,11 @@ import pandas as pd
 # Load the dataset
 file_path = './../data/derived/combined.csv'  # Replace with your file path
 data = pd.read_csv(file_path)
-data = data[~data['PlaylistOwner'].str.contains('robert', na=False)]
+
+data = data[
+    # (data['Year'] == 2024) & 
+    (data['PlaylistOwner'].str.lower().isin({'j', 'jason', 'braden', 'jon', 'jacob', 'theo', 'mcairth'}))
+]
 
 # Relevant song metrics
 metrics = ['Popularity', 'Danceability', 'Energy', 'Loudness', 'Speechiness', 
@@ -47,45 +51,44 @@ for metric in metrics:
 
 def find_extreme_songs_by_metric(data, metric):
     """
-    Find the songs with the highest and lowest values for a given metric.
+    Find the songs with the highest and lowest values for a given metric, including all contributors.
 
     :param data: DataFrame containing the song data.
     :param metric: The metric to evaluate (e.g., 'Popularity', 'Loudness').
-    :return: Information about the songs with the highest and lowest values for the metric, including the contributor.
+    :return: Information about the songs with the highest and lowest values for the metric, including all contributors.
     """
     if metric not in data.columns:
         return "Invalid metric. Please choose a valid metric from the dataset."
 
-    # Find the rows with the highest and lowest values for the metric
-    max_value_row = data.loc[data[metric].idxmax()]
-    min_value_row = data.loc[data[metric].idxmin()]
+    # Find the maximum and minimum metric values
+    max_value = data[metric].max()
+    min_value = data[metric].min()
 
-    # Extracting information including the contributor
-    max_info = {
-        'Song': max_value_row['Track Name'],
-        'Artist': max_value_row['Artist Name(s)'],
-        'Album': max_value_row['Album Name'],
-        'Metric Value': max_value_row[metric],
-        'Contributor': max_value_row['PlaylistOwner']
-    }
+    # Filter rows matching the max and min values
+    max_rows = data[data[metric] == max_value]
+    min_rows = data[data[metric] == min_value]
 
-    min_info = {
-        'Song': min_value_row['Track Name'],
-        'Artist': min_value_row['Artist Name(s)'],
-        'Album': min_value_row['Album Name'],
-        'Metric Value': min_value_row[metric],
-        'Contributor': min_value_row['PlaylistOwner']
-    }
+    # Collect all contributors for the highest and lowest songs
+    def get_info(rows):
+        contributors = list(rows['PlaylistOwner'].unique())
+        song_info = rows.iloc[0]
+        return {
+            'Song': song_info['Track Name'],
+            'Artist': song_info['Artist Name(s)'],
+            'Album': song_info['Album Name'],
+            'Metric Value': song_info[metric],
+            'Contributors': contributors
+        }
+
+    max_info = get_info(max_rows)
+    min_info = get_info(min_rows)
 
     return max_info, min_info
 
-
-# metrics = ['Popularity', 'Danceability', 'Energy', 'Loudness', 'Speechiness', 
-#            'Acousticness', 'Instrumentalness', 'Liveness', 'Valence', 'Tempo']
-
+# Example usage
 metric = 'Danceability'  # Replace with the metric you want to check
 highest, lowest = find_extreme_songs_by_metric(data, metric)
-print(f"Highest: {highest} \nLowest:, {lowest}")
+print(f"Highest: {highest}\nLowest: {lowest}")
 
 # %%
 
@@ -93,7 +96,7 @@ metrics = ['Popularity', 'Danceability', 'Energy', 'Loudness', 'Speechiness',
            'Acousticness', 'Instrumentalness', 'Liveness', 'Valence', 'Tempo']
 
 # Open a file to write the results
-with open('./../figs/extreme_songs_by_metrics.txt', 'w', encoding='utf-8') as file:
+with open('./../figs/2024_extreme_songs_by_metrics.txt', 'w', encoding='utf-8') as file:
     for m in metrics:
         highest, lowest = find_extreme_songs_by_metric(data, m)
         file.write(f"Metric: {m}\n")
