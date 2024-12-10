@@ -8,6 +8,11 @@ from math import pi
 file_path = './../data/derived/combined.csv'
 df = pd.read_csv(file_path)
 
+df = df[
+    (df['Year'] == 2024) & 
+    (df['PlaylistOwner'].str.lower().isin({'j', 'jason', 'braden', 'jon', 'jacob', 'theo', 'mcairth'}))
+]
+
 # Processing the 'Release Date' to extract the year and convert it to numeric
 df['Release Year'] = pd.to_datetime(df['Release Date'], errors='coerce').dt.year
 

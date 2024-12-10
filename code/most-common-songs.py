@@ -6,7 +6,7 @@ file_path = './../data/derived/combined.csv'
 data = pd.read_csv(file_path)
 
 data = data[
-    # (data['Year'] == 2024) & 
+    (data['Year'] == 2024) & 
     (data['PlaylistOwner'].str.lower().isin({'j', 'jason', 'braden', 'jon', 'jacob', 'theo', 'mcairth'}))
 ]
 
