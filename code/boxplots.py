@@ -44,7 +44,7 @@ for metric in metrics:
     plt.xlabel('Metric Value')
     plt.ylabel('Playlist Owner')
     
-    plt.savefig(f'./../figs/bros/boxplot_{metric}.png', bbox_inches='tight', dpi=300)
+    plt.savefig(f'./../figs/2024/bros/boxplot_{metric}.png', bbox_inches='tight', dpi=300)
     plt.show()
 
 # %%
@@ -96,7 +96,7 @@ metrics = ['Popularity', 'Danceability', 'Energy', 'Loudness', 'Speechiness',
            'Acousticness', 'Instrumentalness', 'Liveness', 'Valence', 'Tempo']
 
 # Open a file to write the results
-with open('./../figs/2024_extreme_songs_by_metrics.txt', 'w', encoding='utf-8') as file:
+with open('./../figs/2024/bros/extreme_songs_by_metrics.txt', 'w', encoding='utf-8') as file:
     for m in metrics:
         highest, lowest = find_extreme_songs_by_metric(data, m)
         file.write(f"Metric: {m}\n")
