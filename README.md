@@ -1,9 +1,6 @@
 # spotify-stuff
 This toolkit contains a bunch of tools for network and individual analysis of taste profiles
 
-
-Certainly! Below is the content for a Markdown (.md) file with added emojis and a rewritten conclusion justifying the decision to go with the index-based analysis.
-
 ---
 
 # 3d Network Graph Analysis: Node Creation Strategies 🌐
